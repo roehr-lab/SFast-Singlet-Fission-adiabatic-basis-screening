@@ -18,7 +18,7 @@ to the singlet fission rate is computed using one of the following approximation
  * *non-adiabatic* model |T_RP|^2 = |<S*|grad|TT*>|^2, where S* and TT* are adiabatic states
    which have mostly exciton and biexciton character, respectively (see [Doping]_). 
 
-The wavefunctions contain by 4 electrons in the 4 frontier orbitals, which are the HOMOs and LUMOs on each monomer. 
+The wavefunctions contain 4 electrons in the 4 frontier orbitals, which are the HOMOs and LUMOs on each monomer. 
 The molecular orbitals of the monomer and their interactions are computed using the semiempirical AM1 method
 as implemented in the [PYSEQM]_ package. The derivatives needed to evaluated the non-adiabatic coupling vector
 are computed by automatic differentiation.
@@ -53,13 +53,14 @@ Example
 -------
 The input should be an xyz-file with the geometry of the monomer lying in the XY plane.
 To scan the singlet fission rate (approximated by |T_RP|^2) as a function of the
-the parallel displacement run
+parallel displacement run
 
 .. code-block::
    
    $ scan_sf_rate.py ethene_d2h.xyz --approximation='diabatic'
 
 or
+
 .. code-block::
 
    $ scan_sf_rate.py ethene_d2h.xyz --approximation='non-adiabatic'
@@ -80,7 +81,7 @@ The four frontier monomer orbitals hA,hB, lA,lB for the dimer geometry which is 
 have the largest singlet fission rate, are saved to `monomer_orbitals_max_rate.molden`.
 
 The geometries needed to reproduce the figures in the article [Doping]_ can be found
-in the folder `example_geometries`.
+in the folder `example_geometries/`.
    
 ----------
 References
