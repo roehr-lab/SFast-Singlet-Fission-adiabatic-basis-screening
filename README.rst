@@ -82,7 +82,13 @@ have the largest singlet fission rate, are saved to `monomer_orbitals_max_rate.m
 
 The geometries needed to reproduce the figures in the article [Doping]_ can be found
 in the folder `example_geometries/`.
-   
+
+-------
+Authors
+-------
+Alexander Humeniuk
+Anurag Singh
+
 ----------
 References
 ----------

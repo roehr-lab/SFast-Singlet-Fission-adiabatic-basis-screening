@@ -11,6 +11,7 @@ from PYSEQM.seqm.basics import Parser, Pack_Parameters, Hamiltonian, Energy
 from PYSEQM.seqm.seqm_functions.diat_overlap import diatom_overlap_matrix
 from PYSEQM.seqm.seqm_functions import constants
 from PYSEQM.seqm.seqm_functions.diag import sym_eig_trunc1
+from seqm.seqm_functions.pack import pack
 
 from singlet_fission import pyseqm_helpers
 
@@ -475,6 +476,10 @@ class SingletFissionRate(torch.nn.Module):
         ###
         """
 
+        # PYSEQM uses 4 valence orbitals for any atom, even for hydrogen,
+        # although hydrogen has only 1 s-orbital.
+        # pack(...) removes the padding for hydrogen (the 3 p-orbitals).
+        F_pack = pack(F,nHeavy, nHydro)
         # count the number of valence orbitals on fragments A and B
         naoA = sum([self.num_valorbs[int(element)] for element in self.species[0,idxA]])
         naoB = sum([self.num_valorbs[int(element)] for element in self.species[0,idxB]])
@@ -498,7 +503,7 @@ class SingletFissionRate(torch.nn.Module):
                 dn = self.num_valorbs[int(self.species[0,j])]
                 
                 if (i in idxA) and (j in idxB):
-                    F_AB[:,mA:mA+dm,nB:nB+dn] = F[:,m:m+dm,n:n+dn]
+                    F_AB[:,mA:mA+dm,nB:nB+dn] = F_pack[:,m:m+dm,n:n+dn]
 
                 n += dn
                 if (j in idxB):
