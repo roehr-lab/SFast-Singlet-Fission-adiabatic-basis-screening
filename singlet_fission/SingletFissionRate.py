@@ -11,7 +11,7 @@ from PYSEQM.seqm.basics import Parser, Pack_Parameters, Hamiltonian, Energy
 from PYSEQM.seqm.seqm_functions.diat_overlap import diatom_overlap_matrix
 from PYSEQM.seqm.seqm_functions import constants
 from PYSEQM.seqm.seqm_functions.diag import sym_eig_trunc1
-from seqm.seqm_functions.pack import pack
+from PYSEQM.seqm.seqm_functions.pack import pack
 
 from singlet_fission import pyseqm_helpers
 
