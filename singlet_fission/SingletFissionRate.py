@@ -22,7 +22,7 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-def softmax(y,dim=0,beta=30.0):
+def softmax(y, dim=0, beta=30.0):
     """
     differentiable substitute for argmax(y)
     
@@ -43,9 +43,23 @@ def softmax(y,dim=0,beta=30.0):
 
 class SingletFissionRate(torch.nn.Module):
     def __init__(self, seqm_parameters, species, atom_indices_A, atom_indices_B,
-                 approximation='overlap'):
+                 approximation='overlap',
+                 exciton_state='both'):
         """
-        
+        computes |T_RP|^2 for a dimer
+
+        Parameters
+        ----------
+        atom_indices_A :  Tensor (int,)
+          indices of atoms belonging to monomer A
+        atom_indices_B :  Tensor (int,)
+          indices of atoms belonging to monomer B
+        approximation  :  str
+          Choose approximation for |T_RP|^2, 'diabatic' or 'non-adiabatic'
+        exciton_state  :  str
+          Initial excitonic state for singlet fission, either the bright state ('bright')
+          or the dark state ('dark'). In case of 'both', the matrix element for singlet
+          fission |T_RP|^2 is the incoherent average for the bright and dark states.
         """
         super().__init__()
         
@@ -59,6 +73,8 @@ class SingletFissionRate(torch.nn.Module):
 
         assert approximation in ['overlap', 'diabatic', 'non-adiabatic']
         self.approximation = approximation
+        assert exciton_state in ['bright', 'dark', 'both']
+        self.exciton_state = exciton_state
 
         # number of valence orbital for elements H,C,N and O
         self.num_valorbs = {1 : 1,
@@ -204,6 +220,7 @@ class SingletFissionRate(torch.nn.Module):
             """
 
             # diagonalize symmetric diabatic matrix
+            # Back propagation is only stable if all eigenvalues are different.
             evals, evecs = torch.symeig(H, eigenvectors=True)
 
             # Singlet fission is a non-adiabatic transition between an exciton state
@@ -304,11 +321,19 @@ class SingletFissionRate(torch.nn.Module):
             t2_bright = torch.sum(abs(nac_bright)**2, (1,2))
             #print("|<TT|d/dx|S*>|^2")
             #print(t2_bright)
-
-            # Incoherent sum of rates for the channels
-            #   |S*>  --> |T1T1>
-            #   |S**> --> |T1T1>
-            t2 = 0.5*(t2_dark + t2_bright)
+            if self.exciton_state == 'bright':
+                # Singlet fission happens from the bright exciton state
+                # (which is the lower/higher exciton state for J-coupling/H-coupling)
+                t2 = t2_bright
+            elif self.exciton_state == 'dark':
+                # Singlet fission happens from the dark exciton state
+                # (which is the higher/lower exciton state for J-coupling/H-coupling)
+                t2 = t2_dark
+            else:
+                # Incoherent average of rates for the channels
+                #   |S*>  --> |T1T1>
+                #   |S**> --> |T1T1>
+                t2 = 0.5*(t2_dark + t2_bright)
 
         return t2
         

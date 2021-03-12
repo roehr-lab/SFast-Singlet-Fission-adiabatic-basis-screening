@@ -86,9 +86,11 @@ in the folder `example_geometries/`.
 -------
 Authors
 -------
-Alexander Humeniuk
-Anurag Singh
 
+ - Alexander Humeniuk
+ - Anurag Singh
+
+   
 ----------
 References
 ----------

@@ -89,7 +89,8 @@ semiempirical approximations and scanned as a function of the relative displacem
 of two planar molecules along the x and y axes (Each molecule lies in the xy plane, 
 the distance along the z-axis is 3.5 Ang). The absolute values of |T_RP|^2 are 
 meaningless, only the positions of the maxima are important.
-""")
+    """,
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('xyz_file',
                     type=str, metavar='monomer.xyz',
@@ -98,6 +99,10 @@ parser.add_argument('--approximation',
                     type=str, metavar='model',
                     help='Choose approximation for calculating |T_RP|^2. "diabatic" : SF rate is approximated by the diabatic coupling between the singlet exciton S and the biexciton TT states, which can both mix with higher-lying charge transfer states. Matrix elements of the Fock operator between monomer frontier orbitals are used. "non-adiabatic": SF rate is approximated as the length squared of the non-adiabatic coupling vector between adiabatic states which have mostly exciton (S*) or biexciton (TT*) character, respectively, |<S*|grad|TT*>|^2',
                     default='diabatic')
+parser.add_argument('--exciton_state',
+                    type=str, metavar='state',
+                    help="In the dimer there are two exciton states, one is bright (~ |S0S1>+|S1S0>) the other dark (~ |S0S1>-|S1S0>). The order of the states depends on the electronic coupling between the monomers (J-type of H-type). This option allows to choose the initial exciton state S* which undergoes singlet fission. Possible choices are 'bright', 'dark' or 'both'. In the case of 'both' the average of |T_RP|^2 for singlet fission from the bright and dark states is taken. This option takes effect only in combination with approximation='non-adiabatic'. For approximation='diabatic', the initial state is always |S0S1>, i.e. an excitation localized on the second monomer.",
+                    default='both')
 
 args = parser.parse_args()
 
@@ -213,11 +218,10 @@ rates = torch.zeros(nmol)
 # list of geometries is split into nc chunks that are processed in parallel
 nc = nmol//128
 
-# Which of the different approximations for the SF rate in Ref.[1] should be used?
-approximation = args.approximation #'non-adiabatic' #'diabatic' #'overlap'
-
 print(f"Calculation will be run on device '{device}'")
-print(f"approximation for |T_RP|^2 : {approximation}")
+# Which of the different approximations for the SF rate in Ref.[1] is used?
+print(f"approximation for |T_RP|^2 : {args.approximation}")
+print(f"Initial exciton state : {args.exciton_state}")
 
 with torch.autograd.set_detect_anomaly(True):
     with tqdm.tqdm(total=nc) as progress_bar:
@@ -226,11 +230,12 @@ with torch.autograd.set_detect_anomaly(True):
                     torch.chunk(coordinates,nc,dim=0),
                     torch.chunk(rates,nc,dim=0))):
 
-            if approximation == 'non-adiabatic':
+            if args.approximation == 'non-adiabatic':
                 coordinates_.requires_grad_(True)
             sfr = SingletFissionRate(seqm_parameters, species_,
                                      atom_indices_A, atom_indices_B,
-                                     approximation=approximation).to(device)
+                                     approximation=args.approximation,
+                                     exciton_state=args.exciton_state).to(device)
             # compute rates
             rates_[:] = sfr(coordinates_).cpu()
 
@@ -242,7 +247,8 @@ with torch.autograd.set_detect_anomaly(True):
 imax = torch.argmax(rates).item()
 sfr = SingletFissionRate(seqm_parameters, species[imax,:].unsqueeze(0),
                          atom_indices_A, atom_indices_B,
-                         approximation=approximation).to(device)
+                         approximation=args.approximation,
+                         exciton_state=args.exciton_state).to(device)
 
 # orbitals of dimer and hA,lA, hB,lB at the geometry with largest SF coupling
 sfr.save_dimer_orbitals("dimer_orbitals_max_rate.molden", coordinates[imax,:,:].unsqueeze(0))
@@ -250,5 +256,5 @@ sfr.save_monomer_orbitals("monomer_orbitals_max_rate.molden", coordinates[imax,:
 
 # save scan as .npz file.
 import numpy as np
-np.savez("%s_SF-%s.npz" % (name, approximation), dx=dx, dy=dy, dz=dz, approximation=approximation, rates=rates.detach().numpy())
+np.savez("%s_SF-%s.npz" % (name, args.approximation), dx=dx, dy=dy, dz=dz, approximation=args.approximation, rates=rates.detach().numpy())
 

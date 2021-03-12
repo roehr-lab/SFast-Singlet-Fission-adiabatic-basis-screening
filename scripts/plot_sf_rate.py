@@ -87,7 +87,7 @@ xs,ys,zs = find_local_maxima(dX,dY, rates, n=2)
 
 # show 2D scan
 cmap = plt.get_cmap('jet')
-plt.pcolormesh(dX, dY, rates, cmap=cmap)
+plt.pcolormesh(dX, dY, rates, cmap=cmap, shading='nearest')
 
 # put little dots at the local maxima
 plt.plot(xs, ys, "o", color="white", label="local maxima")
