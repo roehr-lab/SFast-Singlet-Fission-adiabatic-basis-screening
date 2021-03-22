@@ -200,6 +200,7 @@ elements = [0]+sorted(set(species.reshape(-1).tolist()))
 seqm_parameters = {
     'method' : 'AM1',  # AM1, MNDO, PM#
     'scf_eps' : 1.0e-6,  # unit eV, change of electric energy, as nuclear energy doesnt' change during SCF
+    #'scf_backward' : 1,
     'scf_converger' : [2,0.0], # converger used for scf loop
     # [0, 0.1], [0, alpha] constant mixing, P = alpha*P + (1.0-alpha)*Pnew
     # [1], adaptive mixing
@@ -216,7 +217,7 @@ seqm_parameters = {
 rates = torch.zeros(nmol)
 
 # list of geometries is split into nc chunks that are processed in parallel
-nc = nmol//128
+nc = nmol//32 #128
 
 print(f"Calculation will be run on device '{device}'")
 # Which of the different approximations for the SF rate in Ref.[1] is used?
