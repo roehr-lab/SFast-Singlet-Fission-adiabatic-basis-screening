@@ -61,12 +61,13 @@ def SP2(a, nocc, eps=1.0e-4, factor=2.0):
         #print('SP2', k,' '.join([str(x) for x in errm0.tolist()]))
         #print(' '.join([str(x) for x in torch.symeig(a0)[0][0].tolist()]))
         #"""
+        notconverged_ = notconverged.clone()
         if flag:
             #float32, harder to converge to a smaller eps, for this one set eps=1.0e-2, and break when no more improvement
-            notconverged[notconverged] = ~((errm0[notconverged] < eps) * (errm0[notconverged] >= errm2[notconverged]))
+            notconverged[notconverged_] = ~((errm0[notconverged_] < eps) * (errm0[notconverged_] >= errm2[notconverged_]))
         else:
             #float64, if use above critiria, the error will keep going down and take lots of iteration to reach no more improvement
             #so put eps as a small one like 1.0e-4, to recude the number of iterations
-            notconverged[notconverged] = ~((errm0[notconverged] < eps) * (errm1[notconverged] < eps))
+            notconverged[notconverged_] = ~((errm0[notconverged_] < eps) * (errm1[notconverged_] < eps))
 
     return factor*a0
