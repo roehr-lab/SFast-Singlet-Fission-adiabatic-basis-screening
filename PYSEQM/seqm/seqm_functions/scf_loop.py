@@ -751,9 +751,6 @@ def scf_loop(const, molsize, \
             nHydro, nHeavy, nOccMO, \
             nmol, molsize, \
             maskd, mask, atom_molid, pair_molid, idxi, idxj, P, eps)
-        # This fixes a memory leak
-        Pconv = Pconv.detach()
-        notconverged = notconverged.detach()
     #"""
     if notconverged.any():
         nnot = notconverged.type(torch.int).sum().data.item()

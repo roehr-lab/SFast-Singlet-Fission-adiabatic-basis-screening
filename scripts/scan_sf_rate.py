@@ -200,9 +200,9 @@ elements = [0]+sorted(set(species.reshape(-1).tolist()))
 seqm_parameters = {
     'method' : 'AM1',  # AM1, MNDO, PM#
     'scf_eps' : 1.0e-6,  # unit eV, change of electric energy, as nuclear energy doesnt' change during SCF
-    'scf_backward': 1,  #scf_backward==0: ignore the gradient on density matrix
-                        #scf_backward==1: use recursive formula
-                        #scf_backward==2: go backward through scf loop directly          
+    'scf_backward'  : 0,    #scf_backward==0: ignore the gradient on density matrix
+                            #scf_backward==1: use recursive formula
+                            #scf_backward==2: go backward through scf loop directly
     'scf_converger' : [2,0.0], # converger used for scf loop
     # [0, 0.1], [0, alpha] constant mixing, P = alpha*P + (1.0-alpha)*Pnew
     # [1], adaptive mixing
@@ -234,7 +234,7 @@ with torch.autograd.set_detect_anomaly(True):
                     torch.chunk(rates,nc,dim=0))):
             
             coordinates_ = coordinates_.to(device)
-
+            
             if args.approximation == 'non-adiabatic':
                 coordinates_.requires_grad_(True)
             sfr = SingletFissionRate(seqm_parameters, species_,
@@ -243,14 +243,13 @@ with torch.autograd.set_detect_anomaly(True):
                                      exciton_state=args.exciton_state).to(device)
 
             # compute rates
-            t2 = sfr(coordinates_)
-            
+            t2 = sfr(coordinates_)            
             rates_[:] = t2.detach().cpu()
             
             # show progress
             progress_bar.set_description(f"forward pass for {len(species_)} geometries (chunk {ic+1} out of {nc}), memory {torch.cuda.memory_allocated()} (max {torch.cuda.max_memory_allocated()})")
             progress_bar.update(1)
-
+            
 # Find geometry with largest SF rate
 imax = torch.argmax(rates).item()
 sfr = SingletFissionRate(seqm_parameters, species[imax,:].unsqueeze(0),
