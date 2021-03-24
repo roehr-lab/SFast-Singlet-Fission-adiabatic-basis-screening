@@ -21,7 +21,7 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
-
+    
 def softmax(y, dim=0, beta=30.0):
     """
     differentiable substitute for argmax(y)
@@ -316,7 +316,7 @@ class SingletFissionRate(torch.nn.Module):
                 inputs=[coordinates],
                 # The vector 'v' in the Jacobian-vector product
                 grad_outputs=[c_bright_exciton])
-            
+
             # Length of NAC vector squared
             t2_bright = torch.sum(abs(nac_bright)**2, (1,2))
             #print("|<TT|d/dx|S*>|^2")

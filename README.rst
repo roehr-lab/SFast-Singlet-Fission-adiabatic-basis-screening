@@ -32,7 +32,7 @@ Required python packages:
  * pytorch
  * numpy, scipy, matplotlib
  * PYSEQM (PYtorch-based Semi-Empirical Quantum Mechanics, https://github.com/lanl/PYSEQM )
-   A copy of this python module is provided in the folder PYSEQM
+   A copy of this python module is provided in the folder PYSEQM.
  * tqdm
 
 ---------------

@@ -10,7 +10,7 @@ import warnings
 import time
 #from .check import check
 #scf_backward==0: ignore the gradient on density matrix
-#scf_backward==1: use recursive formu
+#scf_backward==1: use recursive formula
 #scf_backward==2: go backward scf loop directly
 
 debug=False
@@ -618,7 +618,7 @@ class SCF(torch.autograd.Function):
             for l in range(1, ln):
                 grads[i].add_(gradients[l][t])
             t+=1
-
+            
         with torch.no_grad():
             #one way is to check grad0.abs().max if they are smaller than backward_eps
             #another way is to compare grad0.abs().max with previous grad0.abs().max, if
@@ -647,9 +647,7 @@ class SCF(torch.autograd.Function):
                 for i in range(3,8):
                     if torch.is_tensor(grads[i]):
                         grads[i][cond[atom_molid]] = 0.0
-
-
-
+                        
         return grads[1], grads[2], grads[3], grads[4], grads[5], grads[6], grads[7], \
                None, None, None, \
                None, None, \
@@ -753,6 +751,9 @@ def scf_loop(const, molsize, \
             nHydro, nHeavy, nOccMO, \
             nmol, molsize, \
             maskd, mask, atom_molid, pair_molid, idxi, idxj, P, eps)
+        # This fixes a memory leak
+        Pconv = Pconv.detach()
+        notconverged = notconverged.detach()
     #"""
     if notconverged.any():
         nnot = notconverged.type(torch.int).sum().data.item()

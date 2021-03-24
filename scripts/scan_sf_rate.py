@@ -38,7 +38,7 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
-        
+    
 def read_xyz(filename):
     """
     reads all geometries from an XYZ-file, the order and type of the atoms
@@ -172,8 +172,8 @@ dx,dy = dxx.reshape(-1), dyy.reshape(-1)
 # number of geometries in the scan
 nmol = dx.shape[0]
 
-species = torch.ones((nmol,molsize),dtype=torch.int64, device=device)
-coordinates = torch.zeros((nmol,molsize,3), device=device)
+species = torch.ones((nmol,molsize),dtype=torch.int64)
+coordinates = torch.zeros((nmol,molsize,3))
 
 # generate geometries for each scan point
 for k in range(0, nmol):
@@ -200,7 +200,9 @@ elements = [0]+sorted(set(species.reshape(-1).tolist()))
 seqm_parameters = {
     'method' : 'AM1',  # AM1, MNDO, PM#
     'scf_eps' : 1.0e-6,  # unit eV, change of electric energy, as nuclear energy doesnt' change during SCF
-    'scf_backward' : 1,
+    'scf_backward': 1,  #scf_backward==0: ignore the gradient on density matrix
+                        #scf_backward==1: use recursive formula
+                        #scf_backward==2: go backward through scf loop directly          
     'scf_converger' : [2,0.0], # converger used for scf loop
     # [0, 0.1], [0, alpha] constant mixing, P = alpha*P + (1.0-alpha)*Pnew
     # [1], adaptive mixing
@@ -217,7 +219,7 @@ seqm_parameters = {
 rates = torch.zeros(nmol)
 
 # list of geometries is split into nc chunks that are processed in parallel
-nc = nmol//32 #128
+nc = nmol//64 #128
 
 print(f"Calculation will be run on device '{device}'")
 # Which of the different approximations for the SF rate in Ref.[1] is used?
@@ -230,6 +232,8 @@ with torch.autograd.set_detect_anomaly(True):
                 zip(torch.chunk(species,nc,dim=0),
                     torch.chunk(coordinates,nc,dim=0),
                     torch.chunk(rates,nc,dim=0))):
+            
+            coordinates_ = coordinates_.to(device)
 
             if args.approximation == 'non-adiabatic':
                 coordinates_.requires_grad_(True)
@@ -237,11 +241,14 @@ with torch.autograd.set_detect_anomaly(True):
                                      atom_indices_A, atom_indices_B,
                                      approximation=args.approximation,
                                      exciton_state=args.exciton_state).to(device)
-            # compute rates
-            rates_[:] = sfr(coordinates_).cpu()
 
+            # compute rates
+            t2 = sfr(coordinates_)
+            
+            rates_[:] = t2.detach().cpu()
+            
             # show progress
-            progress_bar.set_description(f"forward pass for {len(species_)} geometries (chunk {ic+1} out of {nc})")
+            progress_bar.set_description(f"forward pass for {len(species_)} geometries (chunk {ic+1} out of {nc}), memory {torch.cuda.memory_allocated()} (max {torch.cuda.max_memory_allocated()})")
             progress_bar.update(1)
 
 # Find geometry with largest SF rate
@@ -252,8 +259,8 @@ sfr = SingletFissionRate(seqm_parameters, species[imax,:].unsqueeze(0),
                          exciton_state=args.exciton_state).to(device)
 
 # orbitals of dimer and hA,lA, hB,lB at the geometry with largest SF coupling
-sfr.save_dimer_orbitals("dimer_orbitals_max_rate.molden", coordinates[imax,:,:].unsqueeze(0))
-sfr.save_monomer_orbitals("monomer_orbitals_max_rate.molden", coordinates[imax,:,:].unsqueeze(0))
+sfr.save_dimer_orbitals("dimer_orbitals_max_rate.molden", coordinates[imax,:,:].to(device).unsqueeze(0))
+sfr.save_monomer_orbitals("monomer_orbitals_max_rate.molden", coordinates[imax,:,:].to(device).unsqueeze(0))
 
 # save scan as .npz file.
 import numpy as np
