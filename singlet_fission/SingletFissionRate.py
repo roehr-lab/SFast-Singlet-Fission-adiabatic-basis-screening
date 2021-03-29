@@ -335,7 +335,7 @@ class SingletFissionRate(torch.nn.Module):
                 #   |S**> --> |T1T1>
                 t2 = 0.5*(t2_dark + t2_bright)
 
-        return t2
+        return t2, t2_bright, t2_dark
         
     def overlap_AB(self, coordinates):
         """

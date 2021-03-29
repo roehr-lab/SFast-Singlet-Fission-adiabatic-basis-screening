@@ -217,7 +217,8 @@ seqm_parameters = {
 }
 
 rates = torch.zeros(nmol)
-
+brightRate = torch.zeros(nmol)
+darkRate = torch.zeros(nmol)
 # list of geometries is split into nc chunks that are processed in parallel
 nc = nmol//64 #128
 
@@ -228,10 +229,12 @@ print(f"Initial exciton state : {args.exciton_state}")
 
 with torch.autograd.set_detect_anomaly(True):
     with tqdm.tqdm(total=nc) as progress_bar:
-        for ic, (species_, coordinates_, rates_) in enumerate(
+        for ic, (species_, coordinates_, rates_, brightRate_ , darkRate_) in enumerate(
                 zip(torch.chunk(species,nc,dim=0),
                     torch.chunk(coordinates,nc,dim=0),
-                    torch.chunk(rates,nc,dim=0))):
+                    torch.chunk(rates,nc,dim=0),
+                    torch.chunk(brightRate_,nc, dim=0)
+                    torch.chunk(darkRate_, nc, dim=0))):
             
             coordinates_ = coordinates_.to(device)
             
@@ -243,7 +246,11 @@ with torch.autograd.set_detect_anomaly(True):
                                      exciton_state=args.exciton_state).to(device)
 
             # compute rates
-            t2 = sfr(coordinates_)            
+            t2,bright, dark = sfr(coordinates_)
+            if(bright is not None):
+                brightRate_[:] = bright.detach().cpu()
+            if(dark is not None):
+                darkRate_[:] = dark.detach().cpu()
             rates_[:] = t2.detach().cpu()
             
             # show progress
@@ -264,4 +271,8 @@ sfr.save_monomer_orbitals("monomer_orbitals_max_rate.molden", coordinates[imax,:
 # save scan as .npz file.
 import numpy as np
 np.savez("%s_SF-%s.npz" % (name, args.approximation), dx=dx, dy=dy, dz=dz, approximation=args.approximation, rates=rates.detach().numpy())
+if(args.exciton_state == "both"):
+    np.savez("%s_SF-%s.npz" % (name,"non_adiabatic_bright"), dx=dx, dy=dy, dz=dz, approximation=args.approximation, rates=brightRate.detach().numpy())
+    np.savez("%s_SF-%s.npz" % (name,"non_adiabatic_dark"), dx=dx, dy=dy, dz=dz, approximation=args.approximation, rates=darkRate.detach().numpy())
+
 
