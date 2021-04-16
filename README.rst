@@ -1,5 +1,5 @@
-singlet_fission
----------------
+SFast: Singlet Fission adiabatic basis screening
+------------------------------------------------
 
 This python module implements two semiempirical models for estimating singlet fission rates
 in cofacially stacked homodimers, so that the optimal packing arrangement can be identified.
